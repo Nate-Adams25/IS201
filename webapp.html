@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Consultant Quest</title>
+<style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7fa;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .game-container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 30px;
+      text-align: center;
+    }
+    .choices button, #restart-btn, #start-btn button {
+      margin: 10px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #0077ff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      position: relative;
+    }
+    .choices button:hover, #restart-btn:hover, #start-btn button:hover {
+      background-color: #005fd1;
+    }
+    .tooltip {
+      visibility: hidden;
+      width: 260px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.9rem;
+    }
+    button:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    .feedback {
+      margin-top: 20px;
+      font-size: 1rem;
+      color: #555;
+      min-height: 40px;
+    }
+    .score-summary {
+      font-size: 1rem;
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #e0f3ff;
+      border-radius: 12px;
+      color: #004477;
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+<h1>🧠 Consultant Quest</h1>
+<div class="scenario" id="scenario">Choose a project to begin your consulting quest:</div>
+<div class="choices" id="start-btn">
+<button onclick="startGame(0)">🏪 Retail Turnaround
+        <div class="tooltip">Help a struggling retail business find ways to cut costs and grow profits.</div>
+</button>
+<button onclick="startGame(1)">🌱 Startup Scaling
+        <div class="tooltip">Guide a young startup through tough decisions as they grow fast and aim big.</div>
+</button>
+<button onclick="startGame(2)">🏥 Healthcare Strategy
+        <div class="tooltip">Solve challenges for a hospital balancing quality care and rising expenses.</div>
+</button>
+</div>
+<div class="choices" id="choices" style="display:none;"></div>
+<div class="feedback" id="feedback"></div>
+<div class="score-summary" id="score-summary" style="display:none;"></div>
+<button id="restart-btn" onclick="restartGame()" style="display:none;">🔁 Play Again</button>
+<script>let scenarios = [];
+  let currentScenario = 0;
+  let score = 0;
+
+  const allScenarios = [
+    [
+      {
+        text: "You're assigned your first project: a mid-size retail company is losing money. What's your first move?",
+        options: [
+          { text: "Analyze costs", desc: "Look at where the company spends money to find inefficiencies.", feedback: "✅ Good choice! Understanding expenses is key to controlling losses." },
+          { text: "Interview employees", desc: "Talk to staff to get insight into company operations and morale.", feedback: "🟡 Helpful for insights, but not the first place to start with financial trouble." },
+          { text: "Study the market", desc: "Research competitors, customer trends, and overall demand.", feedback: "🟡 Important for context, but internal fixes usually come first." },
+          { text: "Increase prices", desc: "Charge more per item to raise revenue.", feedback: "❌ Risky without first understanding cost and value propositions." }
+        ]
+      },
+      {
+        text: "You find high logistics costs. What’s your next recommendation?",
+        options: [
+          { text: "Negotiate with suppliers", desc: "Try to lower costs by getting better deals with vendors.", feedback: "✅ Smart! Direct action to reduce major costs." },
+          { text: "Lay off staff", desc: "Cut employee numbers to reduce salary expenses.", feedback: "❌ Drastic move that can hurt morale — consider last." },
+          { text: "Launch a marketing campaign", desc: "Try to boost revenue by getting more customers.", feedback: "🟡 Might help sales, but won’t fix logistic costs." },
+          { text: "Redesign product packaging", desc: "Use lighter or more efficient materials to lower costs.", feedback: "🟡 Could help over time, but not an immediate fix." }
+        ]
+      },
+      {
+        text: "The client asks for long-term growth ideas. What do you propose?",
+        options: [
+          { text: "Open more stores", desc: "Expand physical locations to reach more customers.", feedback: "🟡 Growth is good, but only if current ones are solid." },
+          { text: "Expand to e-commerce", desc: "Build an online store to serve customers digitally.", feedback: "✅ Excellent. Scalable and modern growth path." },
+          { text: "Cut salaries", desc: "Reduce pay to save money.", feedback: "❌ Can damage retention and motivation." },
+          { text: "Offer discounts", desc: "Lower prices to attract more buyers.", feedback: "🟡 Could help volume, but may cut margins." }
+        ]
+      }
+    ],
+    [
+      {
+        text: "You're helping a startup scale. Where do you begin?",
+        options: [
+          { text: "Analyze their burn rate", desc: "Check how fast they’re spending compared to revenue.", feedback: "✅ Absolutely. You need to know how quickly they’re burning through cash." },
+          { text: "Redesign their logo", desc: "Update the visual brand.", feedback: "❌ Branding is cool, but growth starts with operations." },
+          { text: "Hire more developers", desc: "Add engineers to increase development speed.", feedback: "🟡 Maybe — but check budget and product-market fit first." },
+          { text: "Launch on TikTok", desc: "Create viral content to attract users.", feedback: "🟡 Could gain traction, but it’s not strategic on its own." }
+        ]
+      },
+      {
+        text: "They need to improve their revenue model. What's your play?",
+        options: [
+          { text: "Test subscription pricing", desc: "Charge customers a monthly fee for access.", feedback: "✅ Recurring revenue is a great strategy for many startups." },
+          { text: "Slash prices", desc: "Lower pricing to grow user base quickly.", feedback: "🟡 Could help growth but may hurt long-term viability." },
+          { text: "Introduce ads", desc: "Make money from advertisers instead of users.", feedback: "🟡 Depends on user base and experience." },
+          { text: "Sell user data", desc: "Monetize by giving data to third parties.", feedback: "❌ Very risky. Legal and ethical concerns abound." }
+        ]
+      },
+      {
+        text: "The founders are arguing. What's your advice?",
+        options: [
+          { text: "Bring in a coach", desc: "Hire a leadership consultant to mediate.", feedback: "✅ Perfect. Mediation builds long-term alignment." },
+          { text: "Pick a favorite", desc: "Choose one leader over the other.", feedback: "❌ Can destroy team trust and cohesion." },
+          { text: "Ignore it", desc: "Hope the argument goes away.", feedback: "❌ Problems left alone tend to grow." },
+          { text: "Have them take a break", desc: "Give them time to cool off.", feedback: "🟡 Sometimes helps, but not a solution on its own." }
+        ]
+      }
+    ],
+    [
+      {
+        text: "You're consulting for a hospital facing rising costs. First move?",
+        options: [
+          { text: "Review operational data", desc: "Look at reports on costs and operations.", feedback: "✅ Best first step — you need a clear picture before acting." },
+          { text: "Add more beds", desc: "Increase capacity to treat more patients.", feedback: "❌ Could increase costs further if not justified." },
+          { text: "Interview nurses", desc: "Ask staff for their insights on problems.", feedback: "🟡 May provide insight, but start with hard data." },
+          { text: "Raise service prices", desc: "Charge more for treatments.", feedback: "🟡 Possible — but may reduce patient access." }
+        ]
+      },
+      {
+        text: "You find inefficiencies in the ER. Recommendation?",
+        options: [
+          { text: "Introduce triage tech", desc: "Use tools to better manage incoming patients.", feedback: "✅ Great! Technology can boost efficiency and care." },
+          { text: "Cut staff", desc: "Reduce the number of employees.", feedback: "❌ Dangerous — could reduce quality of care." },
+          { text: "Install vending machines", desc: "Add snack options to the lobby.", feedback: "❌ Not relevant to the real issue." },
+          { text: "Build another ER", desc: "Construct a second emergency room.", feedback: "🟡 Huge investment — explore other options first." }
+        ]
+      },
+      {
+        text: "The board wants to improve patient satisfaction. You suggest:",
+        options: [
+          { text: "Shorter wait times", desc: "Improve scheduling and speed of service.", feedback: "✅ Absolutely. Timely care boosts satisfaction." },
+          { text: "Better uniforms", desc: "Upgrade staff clothing.", feedback: "🟡 Small cosmetic improvement." },
+          { text: "New logo", desc: "Rebrand the hospital visually.", feedback: "❌ Doesn’t improve patient experience." },
+          { text: "Offer free coffee", desc: "Provide drinks in the lobby.", feedback: "🟡 Nice touch, but not core to satisfaction." }
+        ]
+      }
+    ]
+  ];
+
+  function startGame(index) {
+    scenarios = allScenarios[index];
+    currentScenario = 0;
+    score = 0;
+    document.getElementById("start-btn").style.display = 'none';
+    document.getElementById("choices").style.display = 'block';
+    document.getElementById("score-summary").style.display = 'none';
+    loadScenario(currentScenario);
+  }
+
+  function chooseOption(index) {
+    const option = scenarios[currentScenario].options[index];
+    document.getElementById("feedback").textContent = option.feedback;
+    if (option.feedback.includes("✅")) score++;
+    setTimeout(() => {
+      currentScenario++;
+      if (currentScenario < scenarios.length) {
+        loadScenario(currentScenario);
+      } else {
+        showFinalScore();
+      }
+    }, 3000);
+  }
+
+  function loadScenario(index) {
+    const s = scenarios[index];
+    document.getElementById("scenario").innerHTML = `${s.text} <div style='font-size: 0.9rem; color: #777;'>Hover over each choice to learn what it means.</div>`;
+    const choicesContainer = document.getElementById("choices");
+    choicesContainer.innerHTML = '';
+    document.getElementById("feedback").textContent = '';
+    s.options.forEach((opt, i) => {
+      const btn = document.createElement("button");
+      btn.textContent = opt.text;
+      const tooltip = document.createElement("div");
+      tooltip.className = "tooltip";
+      tooltip.textContent = opt.desc;
+      btn.appendChild(tooltip);
+      btn.onclick = () => chooseOption(i);
+      choicesContainer.appendChild(btn);
+    });
+  }
+
+  function showFinalScore() {
+    document.getElementById("scenario").textContent = "🎉 You've completed Consultant Quest!";
+    document.getElementById("choices").innerHTML = '';
+    document.getElementById("restart-btn").style.display = 'inline-block';
+    const total = scenarios.length;
+    const percent = Math.round((score / total) * 100);
+    let analysis = "";
+    if (score === total) {
+      analysis = "Outstanding! You made strategic choices at every turn.";
+    } else if (score >= total - 1) {
+      analysis = "Great job! A little fine-tuning could make you elite.";
+    } else {
+      analysis = "You’ve got potential. Try again to sharpen your strategy.";
+    }
+    document.getElementById("score-summary").style.display = 'block';
+    document.getElementById("score-summary").innerHTML = `<strong>Your Score:</strong> ${score}/${total} (${percent}%)<br>${analysis}`;
+  }
+
+  function restartGame() {
+    document.getElementById("restart-btn").style.display = 'none';
+    document.getElementById("start-btn").style.display = 'block';
+    document.getElementById("scenario").textContent = "Choose a project to begin your consulting quest:";
+    document.getElementById("feedback").textContent = '';
+    document.getElementById("score-summary").style.display = 'none';
+  }</script>
+  </body>
+</html>
